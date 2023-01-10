@@ -94,7 +94,7 @@ class BackupProcessor():
         # TODO it would be smarter to use asymmetric here, it would improve security since we'd encrypt using public keys
         subprocess.run(f"gpg -c --pinentry-mode=loopback --passphrase-file {self.key_file_path} -o {enc_full_path} {tar_full_path}".split())
         # TODO calc sha256 of the enc file
-        cmd = f"echo aws --profile {self.client_config.credentials}"
+        cmd = f"aws --profile {self.client_config.credentials}"
         cmd += f" s3 cp --storage-class {self.s3_storage_class}"
         cmd += f" {enc_full_path} s3://{self.client_config.bucket}/{enc_name}"
         subprocess.run(cmd.split())
