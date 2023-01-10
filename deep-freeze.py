@@ -29,8 +29,8 @@ class BackupProcessor():
         self.archive_sequence_nb = 0
         # TODO config
         self.archive_max_size_bytes = 200000000 # 200MB
-        #self.s3_storage_class = "DEEP_ARCHIVE"
-        self.s3_storage_class = "STANDARD"
+        self.s3_storage_class = "DEEP_ARCHIVE"
+        #self.s3_storage_class = "STANDARD"
 
     def run(self):
         self.db.prepare_backup()
