@@ -14,6 +14,9 @@ from db import Database, ClientConfig
 class BackupProcessor():
     db: Database
     client_config: ClientConfig
+    s3_storage_class = "STANDARD"
+    upload_archives = False
+    test_mode = False
 
     def __post_init__(self):
         self.key_file_path = self.client_config.key_file_path
@@ -29,7 +32,7 @@ class BackupProcessor():
         self.archive_sequence_nb = 0
         # TODO config
         self.archive_max_size_bytes = 500000000 # 500MB
-        self.s3_storage_class = "DEEP_ARCHIVE"
+        #self.s3_storage_class = "DEEP_ARCHIVE"
         #self.s3_storage_class = "STANDARD"
 
     def run(self):
@@ -44,7 +47,7 @@ class BackupProcessor():
         for root, dirs, files in os.walk(self.client_config.backup_root, followlinks=False):
             for file in files:
                 abs_path = os.path.join(root, file)
-                # Trim root and trailing slash
+                # Trim root and trailing slash
                 rel_path = abs_path[len(self.client_config.backup_root)+1:]
                 metadata = os.lstat(abs_path)
                 self.db.upsert_client_file(self.client_config.client_fqdn,
@@ -65,6 +68,7 @@ class BackupProcessor():
                 tar_full_path = "/tmp/" + tar_name
                 tar = tarfile.open(name=tar_full_path, mode='x:gz')
 
+                print(f"New archive: {tar_name}")
                 tar_id = self.db.new_archive(self.client_config.cloud, self.client_config.region,
                                                 self.client_config.bucket, tar_name)
 
@@ -92,7 +96,6 @@ class BackupProcessor():
 
     def flush_tarball_to_s3(self, tar: tarfile, tar_full_path: str, tar_id: int, tar_size: int, tar_name: str):
         tar.close()
-        
         enc_name = tar_name + '.enc'
         enc_full_path = tar_full_path + '.enc'
         # TODO it would be smarter to use asymmetric here, it would improve security since we'd encrypt using public keys
@@ -101,8 +104,12 @@ class BackupProcessor():
         cmd = f"aws --profile {self.client_config.credentials}"
         cmd += f" s3 cp --storage-class {self.s3_storage_class}"
         cmd += f" {enc_full_path} s3://{self.client_config.bucket}/{enc_name}"
-        subprocess.run(cmd.split())
-        self.db.archive_uploaded(tar_id, tar_size)
+        if (not self.upload_archives) or self.test_mode:
+            print(f"[NoUpload] {cmd}")
+        if self.upload_archives:
+            subprocess.run(cmd.split())
+        if self.upload_archives or self.test_mode:
+            self.db.archive_uploaded(tar_id, tar_size)
         os.remove(tar_full_path)
         os.remove(enc_full_path)
 
