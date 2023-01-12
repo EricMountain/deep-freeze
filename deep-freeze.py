@@ -27,7 +27,7 @@ class BackupProcessor():
             os.makedirs(tmp_directory)
 
         self.archive_sequence_nb = 0
-        # TODO config
+        # TODO config
         self.archive_max_size_bytes = 500000000 # 500MB
         self.s3_storage_class = "DEEP_ARCHIVE"
         #self.s3_storage_class = "STANDARD"
@@ -70,11 +70,15 @@ class BackupProcessor():
 
             # Add file to tar
             print(f"{file['relative_path']} {file['new_size']} -> {tar_name}")
-            tar.add(os.path.join(self.client_config.backup_root, file["relative_path"]))
-            tar_size += file["new_size"]
-
-            # Add file to archive index
-            self.db.add_file_to_archive(tar_id, file["file_id"], file['new_size'], file['new_modification'])
+            try:
+                tar.add(os.path.join(self.client_config.backup_root, file["relative_path"]))
+                tar_size += file["new_size"]
+                # Add file to archive index
+                self.db.add_file_to_archive(tar_id, file["file_id"], file['new_size'], file['new_modification'])
+            except tarfile.TarError as e:
+                # File may have disappeared or be unreadable (permissions)
+                # TODO scan() should ignore files that are unreadable based on permissions
+                print(f'Failed to add {file["relative_path"]}: {e}')
 
             if tar_size >= self.archive_max_size_bytes:
                 self.flush_tarball_to_s3(tar, tar_full_path, tar_id, tar_size, tar_name)
