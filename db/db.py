@@ -197,7 +197,7 @@ class Database():
         return entries
 
     def upsert_client_file(self, client_fqdn, backup_root, rel_path, metadata: os.stat_result, status):
-        datetime_str = self.epoch2fmt(metadata.st_mtime)
+        datetime_str = self._epoch2fmt(metadata.st_mtime)
 
         with self.connection:
             cursor = self.connection.cursor()
@@ -439,5 +439,5 @@ class Database():
                   '''
             cursor.execute(query, (file_id, archive_id, size, modification, "pending_upload"))
 
-    def epoch2fmt(self, epoch) -> str:
+    def _epoch2fmt(self, epoch) -> str:
         return time.strftime('%Y-%m-%d %H:%M:%S %Z', time.gmtime(epoch))
