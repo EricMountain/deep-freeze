@@ -14,7 +14,7 @@ from db import Database, ClientConfig
 class BackupProcessor():
     db: Database
     client_config: ClientConfig
-    s3_storage_class = "STANDARD"
+    s3_storage_class = "DEEP_ARCHIVE"
 
     def __post_init__(self):
         self.key_file_path = self.client_config.key_file_path
@@ -30,8 +30,6 @@ class BackupProcessor():
         self.archive_sequence_nb = 0
         # TODO config
         self.archive_max_size_bytes = 500000000 # 500MB
-        #self.s3_storage_class = "DEEP_ARCHIVE"
-        #self.s3_storage_class = "STANDARD"
 
     def run(self):
         self.db.prepare_backup()
