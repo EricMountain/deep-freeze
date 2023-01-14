@@ -15,8 +15,6 @@ class BackupProcessor():
     db: Database
     client_config: ClientConfig
     s3_storage_class = "STANDARD"
-    upload_archives = False
-    test_mode = False
 
     def __post_init__(self):
         self.key_file_path = self.client_config.key_file_path
@@ -104,12 +102,8 @@ class BackupProcessor():
         cmd = f"aws --profile {self.client_config.credentials}"
         cmd += f" s3 cp --storage-class {self.s3_storage_class}"
         cmd += f" {enc_full_path} s3://{self.client_config.bucket}/{enc_name}"
-        if (not self.upload_archives) or self.test_mode:
-            print(f"[NoUpload] {cmd}")
-        if self.upload_archives:
-            subprocess.run(cmd.split())
-        if self.upload_archives or self.test_mode:
-            self.db.archive_uploaded(tar_id, tar_size)
+        subprocess.run(cmd.split())
+        self.db.archive_uploaded(tar_id, tar_size)
         os.remove(tar_full_path)
         os.remove(enc_full_path)
 

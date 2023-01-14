@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Mock the AWS CLI
+
+exit 0
