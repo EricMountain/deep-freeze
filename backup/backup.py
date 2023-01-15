@@ -5,7 +5,7 @@ import tarfile
 
 from dataclasses import dataclass
 
-from db import Database, ClientConfig
+from db import Database, ClientConfig, File
 
 
 @dataclass
@@ -30,25 +30,33 @@ class Backup():
         self.archive_max_size_bytes = 500000000  # 500MB
 
     def run(self):
-        self.db.prepare_backup()
+        self.prepare_backup()
         self.db.set_sweep_mark(self.client_config.client_fqdn, self.client_config.backup_root)
         self.scan()
         self.db.update_deleted_files_new_status(self.client_config.client_fqdn, self.client_config.backup_root)
         self.db.mark_files_for_backup(self.client_config.client_fqdn, self.client_config.backup_root)
         self.backup()
 
+    # WARN: need to change this if we want simultaneous backups
+    def prepare_backup(self):
+        self.db.connection.execute('''delete from file_archive_records
+                                   where status = 'pending_upload'
+                              ''')
+        self.db.connection.execute('''delete from s3_archives
+                                   where status = 'pending_upload'
+                              ''')
+        self.db.connection.execute('''update files
+                                   set new_size = null,
+                                       new_modification = null,
+                                       new_status = null
+                                   where new_status is not null
+                              ''')
+
     def scan(self):
         for root, dirs, files in os.walk(self.client_config.backup_root, followlinks=False):
             for file in files:
-                abs_path = os.path.join(root, file)
-                # Trim root and trailing slash
-                rel_path = abs_path[len(self.client_config.backup_root) + 1:]
-                metadata = os.lstat(abs_path)
-                self.db.upsert_client_file(self.client_config.client_fqdn,
-                                           self.client_config.backup_root,
-                                           rel_path,
-                                           metadata,
-                                           "present")
+                # FIXME Leads to an update for all files that exist. Slow on large filesystems.
+                File(self.db, self.client_config, root, file).upsert()
 
     def backup(self):
         tar_size = 0

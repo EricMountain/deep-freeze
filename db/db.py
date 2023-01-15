@@ -23,40 +23,6 @@ class Database():
 
         MaintainSchema(self.connection)
 
-    # WARN: need to change this if we want simultaneous backups
-    def prepare_backup(self):
-        self.connection.execute('''delete from file_archive_records
-                                   where status = 'pending_upload'
-                              ''')
-        self.connection.execute('''delete from s3_archives
-                                   where status = 'pending_upload'
-                              ''')
-        self.connection.execute('''update files
-                                   set new_size = null,
-                                       new_modification = null,
-                                       new_status = null
-                                   where new_status is not null
-                              ''')
-
-    def upsert_client_file(self, client_fqdn, backup_root, rel_path, metadata: os.stat_result, status):
-        datetime_str = self._epoch2fmt(metadata.st_mtime)
-
-        with self.connection:
-            cursor = self.connection.cursor()
-            query = '''
-                  insert into files(client_fqdn, backup_root, relative_path, size, modification, status, sweep_mark, force_backup, new_size, new_modification, new_status)
-                  values(?,?,?,?,?,?,'present','Y',?,?,'present')
-                  on conflict(client_fqdn, backup_root, relative_path) do
-                  update set
-                     new_size = ?,
-                     new_modification = ?,
-                     new_status = 'present',
-                     sweep_mark = 'present'
-                  '''
-            cursor.execute(query, (client_fqdn, backup_root, rel_path, metadata.st_size, datetime_str, status,
-                                   metadata.st_size, datetime_str,
-                                   metadata.st_size, datetime_str))
-
     def set_sweep_mark(self, client_fqdn, backup_root):
         with self.connection:
             cursor = self.connection.cursor()
@@ -280,6 +246,3 @@ class Database():
                   values(?,?,?,?,?)
                   '''
             cursor.execute(query, (file_id, archive_id, size, modification, "pending_upload"))
-
-    def _epoch2fmt(self, epoch) -> str:
-        return time.strftime('%Y-%m-%d %H:%M:%S %Z', time.gmtime(epoch))

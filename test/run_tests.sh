@@ -23,6 +23,9 @@ dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=2
 
 ../deep-freeze.py
 
+# FIXME Ensure archive name changes thanks to timestamp
+sleep 1
+
 # Ensure the size is different so we detect a change
 dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=3
 
@@ -31,3 +34,6 @@ dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=3
 rm "${test_root}/a1/b1/c1/c1_1.dat"
 
 ../deep-freeze.py
+
+sqlite3 ~/.deep-freeze-backups/deep-freeze-backups.db \
+  ".headers on" "select * from files; select * from file_archive_records; select * from s3_archives;"
