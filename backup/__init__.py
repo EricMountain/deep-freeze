@@ -1,1 +1,1 @@
-from .worker import Worker
+from .coordinator import Coordinator

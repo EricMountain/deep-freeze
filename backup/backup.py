@@ -9,7 +9,7 @@ from db import Database, ClientConfig
 
 
 @dataclass
-class BackupProcessor():
+class Backup():
     db: Database
     client_config: ClientConfig
     s3_storage_class = "DEEP_ARCHIVE"

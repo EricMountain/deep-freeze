@@ -23,21 +23,19 @@ class Database():
 
         MaintainSchema(self.connection)
 
-        print(f"Database init done, connection {self.connection}")
-
     # WARN: need to change this if we want simultaneous backups
     def prepare_backup(self):
         self.connection.execute('''delete from file_archive_records
-                                 where status = 'pending_upload'
+                                   where status = 'pending_upload'
                               ''')
         self.connection.execute('''delete from s3_archives
-                                 where status = 'pending_upload'
+                                   where status = 'pending_upload'
                               ''')
         self.connection.execute('''update files
-                                 set new_size = null,
+                                   set new_size = null,
                                        new_modification = null,
                                        new_status = null
-                                 where new_status is not null
+                                   where new_status is not null
                               ''')
 
     def upsert_client_file(self, client_fqdn, backup_root, rel_path, metadata: os.stat_result, status):

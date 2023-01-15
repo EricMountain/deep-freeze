@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from backup import Worker
+from backup import Coordinator
 
-w = Worker()
-w.run()
+c = Coordinator()
+c.run()

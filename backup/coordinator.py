@@ -1,8 +1,8 @@
-from .backup import BackupProcessor
+from .backup import Backup
 from db import Database, ClientConfigFactory
 
 
-class Worker():
+class Coordinator():
     def __init__(self):
         self.db = Database()
 
@@ -11,4 +11,4 @@ class Worker():
         client_configs = ccf.get_active_client_configs()
         for cc in client_configs:
             print(f"{cc}")
-            BackupProcessor(self.db, cc).run()
+            Backup(self.db, cc).run()
