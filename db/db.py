@@ -2,12 +2,15 @@ import sqlite3
 import os
 import time
 
+from dataclasses import dataclass
+
 from .ddl import MaintainSchema
-from .client_config import ClientConfig
 
 
+@dataclass
 class Database():
-    def __init__(self):
+
+    def __post_init__(self):
         # TODO check sanity
         home = os.getenv('HOME')
         rcdir = '.deep-freeze-backups'
@@ -20,8 +23,7 @@ class Database():
 
         MaintainSchema(self.connection)
 
-    def __del__(self):
-        self.connection.close()
+        print(f"Database init done, connection {self.connection}")
 
     # WARN: need to change this if we want simultaneous backups
     def prepare_backup(self):
@@ -37,35 +39,6 @@ class Database():
                                        new_status = null
                                  where new_status is not null
                               ''')
-
-    def add_backup_client_config(self, client_fqdn: str, backup_root: str, key_file_path: str,
-                                 cloud: str, region: str, credentials: str, bucket: str):
-        with self.connection:
-            cursor = self.connection.cursor()
-            query = '''
-                  insert into backup_client_configs(client_fqdn, backup_root, status, key_file_path,
-                                                      cloud, region, credentials, bucket)
-                  values(?,?,?,?,?,?,?,?)
-                  '''
-            cursor.execute(query, (client_fqdn, backup_root, "active", key_file_path,
-                                   cloud, region, credentials, bucket))
-
-    def get_active_client_configs(self):
-        entries = []
-        with self.connection:
-            cursor = self.connection.cursor()
-            query = '''
-                  select cloud, region, credentials, bucket, client_fqdn, backup_root, key_file_path
-                  from backup_client_configs
-                  where status = 'active'
-                  '''
-            cursor.execute(query)
-
-            for row in cursor:
-                entries.append(ClientConfig(row["cloud"], row["region"], row["credentials"], row["bucket"],
-                                            row["client_fqdn"], row["backup_root"], row["key_file_path"]))
-
-        return entries
 
     def upsert_client_file(self, client_fqdn, backup_root, rel_path, metadata: os.stat_result, status):
         datetime_str = self._epoch2fmt(metadata.st_mtime)

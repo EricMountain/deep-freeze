@@ -5,30 +5,29 @@ set -x
 
 [[ ! -d ~/.deep-freeze-backups ]] && mkdir ~/.deep-freeze-backups
 rm -f ~/.deep-freeze-backups/deep-freeze-backups.db
-./create_test_config.py
+dd if=/dev/urandom of=/deep-freeze/test/key bs=1024 count=1
 
-#testroot=$(mktemp -d)
-testroot=/deep-freeze/test/root
-echo testkey > /deep-freeze/test/key
+test_root=$(mktemp -d)
+../create-config.py --cloud-provider=aws --region=eu-north-1 --aws-profile=toto --bucket=bucket \
+                    --client-name="test-host" --backup-root="${test_root}" --key-file=/deep-freeze/test/key
 
-mkdir -p "${testroot}/a1/b1/c1"
-mkdir -p "${testroot}/a1/b1/c2"
-mkdir -p "${testroot}/d1/e1/f1"
-mkdir -p "${testroot}/d1/e2/f2"
+mkdir -p "${test_root}/a1/b1/c1"
+mkdir -p "${test_root}/a1/b1/c2"
+mkdir -p "${test_root}/d1/e1/f1"
+mkdir -p "${test_root}/d1/e2/f2"
 
-dd if=/dev/urandom of="${testroot}/a1/b1/c1/c1_1.dat" bs=1k count=2
-dd if=/dev/urandom of="${testroot}/a1/b1/c1/c1_2.dat" bs=1k count=2
-dd if=/dev/urandom of="${testroot}/d1/e1/f1/f1_1.dat" bs=1k count=2
-dd if=/dev/urandom of="${testroot}/d1/e2/f2/f2_1.dat" bs=1k count=2
-
-../deep-freeze.py
-
-# We need to ensure the file modification time won't be in the same second
-sleep 1
-dd if=/dev/urandom of="${testroot}/d1/e2/f2/f2_1.dat" bs=1k count=2
+dd if=/dev/urandom of="${test_root}/a1/b1/c1/c1_1.dat" bs=1k count=2
+dd if=/dev/urandom of="${test_root}/a1/b1/c1/c1_2.dat" bs=1k count=2
+dd if=/dev/urandom of="${test_root}/d1/e1/f1/f1_1.dat" bs=1k count=2
+dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=2
 
 ../deep-freeze.py
 
-rm "${testroot}/a1/b1/c1/c1_1.dat"
+# Ensure the size is different so we detect a change
+dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=3
+
+../deep-freeze.py
+
+rm "${test_root}/a1/b1/c1/c1_1.dat"
 
 ../deep-freeze.py

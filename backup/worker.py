@@ -1,5 +1,5 @@
 from .backup import BackupProcessor
-from db import Database
+from db import Database, ClientConfigFactory
 
 
 class Worker():
@@ -7,7 +7,8 @@ class Worker():
         self.db = Database()
 
     def run(self):
-        client_configs = self.db.get_active_client_configs()
+        ccf = ClientConfigFactory(self.db)
+        client_configs = ccf.get_active_client_configs()
         for cc in client_configs:
             print(f"{cc}")
             BackupProcessor(self.db, cc).run()
