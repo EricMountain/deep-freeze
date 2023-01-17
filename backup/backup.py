@@ -53,10 +53,12 @@ class Backup():
                               ''')
 
     def scan(self):
+        # self.db.connection.execute("BEGIN")
         for root, dirs, files in os.walk(self.client_config.backup_root, followlinks=False):
             for file in files:
                 # FIXME Leads to an update for all files that exist. Slow on large filesystems.
                 File(self.db, self.client_config, root, file).upsert()
+        # self.db.connection.commit()
 
     def backup(self):
         tar_size = 0
