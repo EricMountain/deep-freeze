@@ -13,15 +13,23 @@ class File():
     client_config: ClientConfig
     root: str
     file: str
+    is_accessible: bool = False
 
     def __post_init__(self):
         abs_path = os.path.join(self.root, self.file)
-        self.metadata = os.lstat(abs_path)
+        try:
+            self.metadata = os.lstat(abs_path)
+        except FileNotFoundError:
+            self.is_accessible = False
 
         # Trim root and trailing slash
         self.rel_path = abs_path[len(self.client_config.backup_root) + 1:]
 
     def upsert(self):
+        if not self.is_accessible:
+            # Behave as though the file has been deleted
+            return
+
         datetime_str = self._epoch2fmt(self.metadata.st_mtime)
 
         with self.db.connection:
@@ -32,10 +40,10 @@ class File():
                   values(?,?,?,?,?,'present','present','Y',?,?,'present')
                   on conflict(client_fqdn, backup_root, relative_path) do
                   update set
-                     new_size = ?,
-                     new_modification = ?,
-                     new_status = 'present',
-                     sweep_mark = 'present'
+                      new_size = ?,
+                      new_modification = ?,
+                      new_status = 'present',
+                      sweep_mark = 'present'
                   '''
             cursor.execute(query, (self.client_config.client_fqdn, self.client_config.backup_root,
                                    self.rel_path, self.metadata.st_size,
