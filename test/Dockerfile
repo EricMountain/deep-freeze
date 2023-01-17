@@ -7,4 +7,4 @@ WORKDIR /deep-freeze/test
 ENV PYTHONPATH=/deep-freeze
 ENTRYPOINT ["/deep-freeze/test/run_tests.sh"]
 COPY test/mock/aws /usr/local/bin/aws
-COPY .. /deep-freeze
+COPY . /deep-freeze
