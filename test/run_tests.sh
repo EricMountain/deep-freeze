@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-#set -x
+set -x
 
 [[ ! -d ~/.deep-freeze-backups ]] && mkdir ~/.deep-freeze-backups
 rm -f ~/.deep-freeze-backups/deep-freeze-backups.db
@@ -51,5 +51,5 @@ rm "${test_root}/a1/b1/c1/c1_1.dat"
 
 time ../deep-freeze.py
 
-sqlite3 ~/.deep-freeze-backups/deep-freeze-backups.db \
-  ".headers on" "select * from files; select * from file_archive_records; select * from s3_archives;"
+sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
+  "select * from files; select * from file_archive_records; select * from s3_archives;"

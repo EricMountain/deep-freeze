@@ -13,7 +13,7 @@ class File():
     client_config: ClientConfig
     root: str
     file: str
-    is_accessible: bool = False
+    is_accessible: bool = True
 
     def __post_init__(self):
         abs_path = os.path.join(self.root, self.file)
@@ -28,6 +28,7 @@ class File():
     def upsert(self):
         if not self.is_accessible:
             # Behave as though the file has been deleted
+            print(f"Inaccessible, pretend deleted: {self.rel_path}")
             return
 
         datetime_str = self._epoch2fmt(self.metadata.st_mtime)
