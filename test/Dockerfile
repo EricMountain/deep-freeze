@@ -1,7 +1,8 @@
 FROM ubuntu:22.04
 
+# systemd provides systemd-detect-virt
 RUN apt update && \
-    apt install -y python3 gnupg sqlite3
+    apt install -y python3 gnupg sqlite3 systemd
 
 WORKDIR /deep-freeze/test
 ENV PYTHONPATH=/deep-freeze

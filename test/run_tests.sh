@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-set -x
+#set -x
 
-# TODO Ensure running in a container
+# Ensure we die if the binary is missing (but we don't want to die right away
+# if we're running on bare metal, we want a chance to error nicely)
+type systemd-detect-virt > /dev/null
+case $(systemd-detect-virt) in
+  docker)
+    ;;
+  *)
+    echo Fatal: tests need to be run inside a container
+    exit 1
+    ;;
+esac
 
 [[ ! -d ~/.deep-freeze-backups ]] && mkdir ~/.deep-freeze-backups
 rm -f ~/.deep-freeze-backups/deep-freeze-backups.db
