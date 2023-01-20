@@ -3,10 +3,13 @@ import os
 
 from dataclasses import dataclass
 
+import db.schema_upgrades
+
 
 @dataclass()
 class MaintainSchema():
     connection: sqlite3.Connection
+    target_schema_version: int = 0
 
     def __post_init__(self):
         # Create base schema, aka version 0
@@ -15,10 +18,24 @@ class MaintainSchema():
         self.ddl_create_table_files()
         self.ddl_create_table_backup_client_configs()
         self.ddl_create_table_deep_freeze_metadata()
-        schema_version = self.get_schema_version()
+        self.get_schema_version()
+        self.upgrade_schema()
+
+    def upgrade_schema(self):
+        assert self.schema_version <= self.target_schema_version
+        if self.schema_version == self.target_schema_version:
+            return
+
+        print(f"Processing schema upgrades from v{self.schema_version} to v{self.target_schema_version}")
+        for v in range(self.schema_version+1, self.target_schema_version+1):
+            print(f"Upgrading schema to v{v}")
+            class_ = getattr(db.schema_upgrades, f"SchemaUpgradeV{v}")
+            class_(self.connection)
+        self.get_schema_version()
+        assert self.schema_version == self.target_schema_version
 
     def get_schema_version(self) -> int:
-        schema_version = ""
+        schema_version_str = ""
         with self.connection:
             cursor = self.connection.cursor()
             query = '''
@@ -29,14 +46,15 @@ class MaintainSchema():
             cursor.execute(query)
 
             for row in cursor:
-                schema_version = row["value"]
-        if schema_version == "":
-            schema_version = "0"
-            self.connection.execute('''insert into deep_freeze_metadata(key, value)
-                                    values('schema_version', '0')
-                                 ''')
+                schema_version_str = row["value"]
 
-        return int(schema_version)
+            if schema_version_str == "":
+                schema_version_str = "0"
+                self.connection.execute('''insert into deep_freeze_metadata(key, value)
+                                        values('schema_version', '0')
+                                    ''')
+
+        self.schema_version = int(schema_version_str)
 
     def ddl_create_table_backup_client_configs(self):
         self.connection.execute('''create table if not exists backup_client_configs (

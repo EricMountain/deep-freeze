@@ -55,6 +55,7 @@ class Backup():
     def scan(self):
         self.db.connection.execute("BEGIN")
         for root, dirs, files in os.walk(self.client_config.backup_root, followlinks=False):
+            # dirs[:] = [dir for dir in dirs if not os.path.ismount(os.path.join(root, dir))]
             for file in files:
                 File(self.db, self.client_config, root, file).upsert()
         self.db.connection.commit()
