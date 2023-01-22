@@ -12,22 +12,26 @@ from db import Database, ClientConfig, File
 class Backup():
     db: Database
     client_config: ClientConfig
-    s3_storage_class = "DEEP_ARCHIVE"
+    s3_storage_class: str = "DEEP_ARCHIVE"
 
     def __post_init__(self):
-        self.key_file_path = self.client_config.key_file_path
+        self._get_config_settings()
 
         self.backup_frozen_time = time.time()
         self.backup_frozen_time_struct = time.gmtime(self.backup_frozen_time)
 
-        # TODO use mktemp
+        # TODO use mktemp + destroy on exit
         tmp_directory = time.strftime('/tmp/%Y/%m/%d', self.backup_frozen_time_struct)
         if not os.path.exists(tmp_directory):
             os.makedirs(tmp_directory)
 
         self.archive_sequence_nb = 0
+
+    def _get_config_settings(self):
+        self.cross_devices = self.client_config.options[ClientConfig.BACKUPS_CROSS_DEVICES] == ClientConfig.YES
         # TODO config
         self.archive_max_size_bytes = 500000000  # 500MB
+        self.key_file_path = self.client_config.key_file_path
 
     def run(self):
         self.prepare_backup()
@@ -55,7 +59,8 @@ class Backup():
     def scan(self):
         self.db.connection.execute("BEGIN")
         for root, dirs, files in os.walk(self.client_config.backup_root, followlinks=False):
-            # dirs[:] = [dir for dir in dirs if not os.path.ismount(os.path.join(root, dir))]
+            if not self.cross_devices:
+                dirs[:] = [dir for dir in dirs if not os.path.ismount(os.path.join(root, dir))]
             for file in files:
                 File(self.db, self.client_config, root, file).upsert()
         self.db.connection.commit()
