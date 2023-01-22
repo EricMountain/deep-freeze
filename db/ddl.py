@@ -12,13 +12,15 @@ class MaintainSchema():
     target_schema_version: int = 0
 
     def __post_init__(self):
-        # Create base schema, aka version 0
+        # Schema version 0
         self.ddl_create_table_s3_archives()
         self.ddl_create_table_file_archive_records()
         self.ddl_create_table_files()
         self.ddl_create_table_backup_client_configs()
         self.ddl_create_table_deep_freeze_metadata()
         self.get_schema_version()
+
+        # Schema version 1 and above
         self.upgrade_schema()
 
     def upgrade_schema(self):

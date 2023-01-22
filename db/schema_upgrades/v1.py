@@ -20,4 +20,3 @@ class SchemaUpgradeV1():
                   where key = 'schema_version'
                   '''
             cursor.execute(query, (str(self.schema_version),))
-        print(f"upgraded to v1")

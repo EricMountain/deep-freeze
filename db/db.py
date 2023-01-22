@@ -107,7 +107,6 @@ class Database():
                      '''
                 cursor.execute(query, (entry["size"], entry["archive_id"]))
 
-            # TODO move this to archive_uploaded() as the code is not shared
             # Flag previous file backup records as superseded
             if new_archive_id is not None:
                 with self.connection:
