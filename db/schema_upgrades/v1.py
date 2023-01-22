@@ -2,21 +2,17 @@ import sqlite3
 
 from dataclasses import dataclass
 
+from .schema_upgrade import SchemaUpgrade
+
 
 @dataclass()
-class SchemaUpgradeV1():
+class SchemaUpgradeV1(SchemaUpgrade):
     connection: sqlite3.Connection
     schema_version: int = 1
 
     def __post_init__(self):
+        self.upgrade()
         self.set_version()
 
-    def set_version(self):
-        with self.connection:
-            cursor = self.connection.cursor()
-            query = '''
-                  update deep_freeze_metadata
-                  set value = ?
-                  where key = 'schema_version'
-                  '''
-            cursor.execute(query, (str(self.schema_version),))
+    def upgrade(self):
+        pass
