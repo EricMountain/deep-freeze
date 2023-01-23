@@ -31,7 +31,7 @@ fi
 
 ../create-config.py --cloud-provider=aws --region=eu-north-1 --aws-profile=toto --bucket=bucket \
   --client-name="test-host" --backup-root="${test_root}" \
-  --key-file=/deep-freeze/test/key #--no-cross-devices
+  --key-file=/deep-freeze/test/key --no-cross-devices
 
 sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
   "select * from deep_freeze_metadata;"

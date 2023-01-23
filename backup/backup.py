@@ -21,24 +21,29 @@ class Backup():
         self.backup_frozen_time_struct = time.gmtime(self.backup_frozen_time)
 
         # TODO use mktemp + destroy on exit
-        tmp_directory = time.strftime('/tmp/%Y/%m/%d', self.backup_frozen_time_struct)
+        tmp_directory = time.strftime('/tmp/%Y/%m/%d',
+                                      self.backup_frozen_time_struct)
         if not os.path.exists(tmp_directory):
             os.makedirs(tmp_directory)
 
         self.archive_sequence_nb = 0
 
     def _get_config_settings(self):
-        self.cross_devices = self.client_config.options[ClientConfig.BACKUPS_CROSS_DEVICES] == ClientConfig.YES
+        self.cross_devices = self.client_config.options[
+            ClientConfig.BACKUPS_CROSS_DEVICES] == ClientConfig.YES
         # TODO config
         self.archive_max_size_bytes = 500000000  # 500MB
         self.key_file_path = self.client_config.key_file_path
 
     def run(self):
         self.prepare_backup()
-        self.db.set_sweep_mark(self.client_config.client_fqdn, self.client_config.backup_root)
+        self.db.set_sweep_mark(
+            self.client_config.client_fqdn, self.client_config.backup_root)
         self.scan()
-        self.db.update_deleted_files_new_status(self.client_config.client_fqdn, self.client_config.backup_root)
-        self.db.mark_files_for_backup(self.client_config.client_fqdn, self.client_config.backup_root)
+        self.db.update_deleted_files_new_status(
+            self.client_config.client_fqdn, self.client_config.backup_root)
+        self.db.mark_files_for_backup(
+            self.client_config.client_fqdn, self.client_config.backup_root)
         self.backup()
 
     # WARN: need to change this if we want simultaneous backups
@@ -60,7 +65,8 @@ class Backup():
         self.db.connection.execute("BEGIN")
         for root, dirs, files in os.walk(self.client_config.backup_root, followlinks=False):
             if not self.cross_devices:
-                dirs[:] = [dir for dir in dirs if not os.path.ismount(os.path.join(root, dir))]
+                dirs[:] = [dir for dir in dirs if not os.path.ismount(
+                    os.path.join(root, dir))]
             for file in files:
                 File(self.db, self.client_config, root, file).upsert()
         self.db.connection.commit()
@@ -84,24 +90,32 @@ class Backup():
             # Add file to tar
             print(f"{file['relative_path']} {file['new_size']} -> {tar_name}")
             try:
-                tar.add(os.path.join(self.client_config.backup_root, file["relative_path"]))
-                tar_size += file["new_size"]
-                # Add file to archive index
-                self.db.add_file_to_archive(tar_id, file["file_id"], file['new_size'], file['new_modification'])
+                tar.add(os.path.join(
+                    self.client_config.backup_root, file["relative_path"]))
+            except FileNotFoundError as e:
+                # File has been deleted in the interim.
+                print(f'File disappeared: {file["relative_path"]}, {e}')
             except tarfile.TarError as e:
-                # File may have disappeared or be unreadable (permissions)
-                # TODO scan() should ignore files that are unreadable based on permissions
+                # File may be unreadable (permissions), or some other error
+                # TODO Determine cases and handle appropriately
                 print(f'Failed to add {file["relative_path"]}: {e}')
 
+            # File successfully added to the tarball, so account for its size and add to archive index
+            tar_size += file["new_size"]
+            self.db.add_file_to_archive(tar_id, file["file_id"],
+                                        file['new_size'], file['new_modification'])
+
             if tar_size >= self.archive_max_size_bytes:
-                self.flush_tarball_to_s3(tar, tar_full_path, tar_id, tar_size, tar_name)
+                self.flush_tarball_to_s3(tar, tar_full_path, tar_id, tar_size,
+                                         tar_name)
                 tar_name = None
                 tar_full_path = None
                 tar = None
                 tar_size = 0
 
         if tar is not None:
-            self.flush_tarball_to_s3(tar, tar_full_path, tar_id, tar_size, tar_name)
+            self.flush_tarball_to_s3(tar, tar_full_path, tar_id, tar_size,
+                                     tar_name)
 
     def flush_tarball_to_s3(self, tar: tarfile, tar_full_path: str, tar_id: int, tar_size: int, tar_name: str):
         tar.close()
@@ -122,7 +136,8 @@ class Backup():
     def new_archive_name(self) -> str:
         # datetime, client, bkp root, seqnb
         # NB - this shards archives into a hierarchy based on the date to limit per-directory file count
-        datetime_str = time.strftime('%Y/%m/%d/%H-%M-%S', self.backup_frozen_time_struct)
+        datetime_str = time.strftime('%Y/%m/%d/%H-%M-%S',
+                                     self.backup_frozen_time_struct)
         safe_bkp_root = self.safe_filename(self.client_config.backup_root)
         self.archive_sequence_nb += 1
         name = f"{datetime_str}_{self.client_config.client_fqdn}_{safe_bkp_root}_{self.archive_sequence_nb}"
