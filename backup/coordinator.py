@@ -10,5 +10,5 @@ class Coordinator():
         ccf = ClientConfigFactory(self.db)
         client_configs = ccf.get_active_client_configs()
         for cc in client_configs:
-            print(f"{cc}")
+            print(f"Backing up: {cc}")
             Backup(self.db, cc).run()

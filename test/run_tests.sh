@@ -5,29 +5,34 @@ set -euo pipefail
 
 # Ensure we die if the binary is missing (but we don't want to die right away
 # if we're running on bare metal, we want a chance to error nicely)
-type systemd-detect-virt > /dev/null
+type systemd-detect-virt >/dev/null
 case $(systemd-detect-virt) in
-  docker)
-    ;;
-  *)
-    echo Fatal: tests need to be run inside a container
-    exit 1
-    ;;
+docker) ;;
+
+*)
+  echo Fatal: tests need to be run inside a container
+  exit 1
+  ;;
 esac
 
 [[ ! -d ~/.deep-freeze-backups ]] && mkdir ~/.deep-freeze-backups
 rm -f ~/.deep-freeze-backups/deep-freeze-backups.db
+
 dd if=/dev/urandom of=/deep-freeze/test/key bs=1024 count=1
 
-if [[ -z ${test_root} || ! -d ${test_root} ]] ; then
+if [[ -z ${test_root} || ! -d ${test_root} ]]; then
   echo Need test_root set and directory created
   exit 1
 fi
-# test_root=$(mktemp -d)
 
 ../create-config.py --cloud-provider=aws --region=eu-north-1 --aws-profile=toto --bucket=bucket \
-                    --client-name="test-host" --backup-root="${test_root}" --key-file=/deep-freeze/test/key #--no-cross-devices
-                    
+  --client-name="test-host" --backup-root=${HOME}/.deep-freeze-backups \
+  --key-file=/deep-freeze/test/key
+
+../create-config.py --cloud-provider=aws --region=eu-north-1 --aws-profile=toto --bucket=bucket \
+  --client-name="test-host" --backup-root="${test_root}" \
+  --key-file=/deep-freeze/test/key #--no-cross-devices
+
 sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
   "select * from deep_freeze_metadata;"
 

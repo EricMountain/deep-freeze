@@ -1,3 +1,5 @@
+import os
+
 from dataclasses import dataclass
 from typing import Dict
 
@@ -38,7 +40,8 @@ class ClientConfig():
                         insert into backup_client_configs_options(client_fqdn, backup_root, key, value)
                         values(?,?,?,?)
                         '''
-                cursor.execute(query, (self.client_fqdn, self.backup_root, key, value))
+                cursor.execute(
+                    query, (self.client_fqdn, self.backup_root, key, value))
 
 
 @dataclass
@@ -56,6 +59,8 @@ class ClientConfigFactory():
                   '''
             cursor.execute(query)
 
+            deep_freeze_root = os.path.dirname(self.db.db_path)
+            deep_freeze_root_bkp_config = None
             for row in cursor:
                 cursor2 = self.db.connection.cursor()
                 query = '''
@@ -64,14 +69,21 @@ class ClientConfigFactory():
                         where client_fqdn = ?
                         and backup_root = ?
                         '''
-                cursor2.execute(query, (row["client_fqdn"], row["backup_root"]))
+                cursor2.execute(
+                    query, (row["client_fqdn"], row["backup_root"]))
                 options = {}
                 for row2 in cursor2:
                     options[row2["key"]] = row2["value"]
 
                 cc = ClientConfig(row["cloud"], row["region"], row["credentials"], row["bucket"],
-                                            row["client_fqdn"], row["backup_root"], row["key_file_path"],
-                                            options, self.db)
+                                  row["client_fqdn"], row["backup_root"], row["key_file_path"],
+                                  options, self.db)
+                if cc.backup_root == deep_freeze_root:
+                    deep_freeze_root_bkp_config = cc
+                    continue
                 configs.append(cc)
+
+            if deep_freeze_root_bkp_config is not None:
+                configs.append(deep_freeze_root_bkp_config)
 
         return configs
