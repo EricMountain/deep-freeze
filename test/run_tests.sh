@@ -19,17 +19,28 @@ esac
 rm -f ~/.deep-freeze-backups/deep-freeze-backups.db
 dd if=/dev/urandom of=/deep-freeze/test/key bs=1024 count=1
 
-test_root=$(mktemp -d)
+if [[ -z ${test_root} || ! -d ${test_root} ]] ; then
+  echo Need test_root set and directory created
+  exit 1
+fi
+# test_root=$(mktemp -d)
+
 ../create-config.py --cloud-provider=aws --region=eu-north-1 --aws-profile=toto --bucket=bucket \
-                    --client-name="test-host" --backup-root="${test_root}" --key-file=/deep-freeze/test/key
+                    --client-name="test-host" --backup-root="${test_root}" --key-file=/deep-freeze/test/key #--no-cross-devices
                     
 sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
   "select * from deep_freeze_metadata;"
+
+sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
+  "select * from backup_client_configs; select * from backup_client_configs_options;"
 
 mkdir -p "${test_root}/a1/b1/c1"
 mkdir -p "${test_root}/a1/b1/c2"
 mkdir -p "${test_root}/d1/e1/f1"
 mkdir -p "${test_root}/d1/e2/f2"
+
+# mkdir -p "${test_root}/other_dev"
+# mount -o bind /mnt/other_dev_vol "${test_root}/other_dev"
 
 dd if=/dev/urandom of="${test_root}/a1/b1/c1/c1_1.dat" bs=1k count=2
 dd if=/dev/urandom of="${test_root}/a1/b1/c1/c1_2.dat" bs=1k count=2

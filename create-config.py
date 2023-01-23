@@ -31,10 +31,18 @@ if __name__ == '__main__':
     parser.add_argument("--key-file",
                         help="Path to the symmetric key to use for encrypting archives",
                         type=str)
+    parser.add_argument("--cross-devices",
+                        help="Whether backups of this directory will cross mount points",
+                        action=argparse.BooleanOptionalAction,
+                        default=True)
 
     args = parser.parse_args()
 
+    options = {}
+    options["backups_cross_devices"] = "Y" if args.cross_devices else "N"
+    print(f"create config {options=!r}")
+
     db = Database()
     config = ClientConfig(args.cloud_provider, args.region, args.aws_profile, args.bucket, args.client_name,
-                          args.backup_root, args.key_file, db)
+                          args.backup_root, args.key_file, options, db)
     config.add_to_database()
