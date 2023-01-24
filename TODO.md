@@ -1,4 +1,4 @@
-* Handle files deleted or not accessible mid-run
-* Test recovery: interruption during tar
-* Test recovery: interruption during upload
-* Tests: check backup results
+- Test files deleted or not accessible mid-run
+- Test recovery: interruption during tar
+- Test recovery: interruption during upload
+- Tests: check backup results

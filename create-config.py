@@ -40,7 +40,6 @@ if __name__ == '__main__':
 
     options = {}
     options["backups_cross_devices"] = "Y" if args.cross_devices else "N"
-    print(f"create config {options=!r}")
 
     db = Database()
     config = ClientConfig(args.cloud_provider, args.region, args.aws_profile, args.bucket, args.client_name,
