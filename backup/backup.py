@@ -77,7 +77,10 @@ class Backup():
         tar_full_path = None
         tar = None
         tar_id = None
-        for file in self.db.get_files_to_backup(self.client_config.client_fqdn, self.client_config.backup_root):
+        files_to_backup = self.db.get_files_to_backup(self.client_config.client_fqdn,
+                                                      self.client_config.backup_root)
+        files_to_backup_count = len(files_to_backup)
+        for idx, file in enumerate(files_to_backup):
             if tar_name is None:
                 tar_name = self.new_archive_name() + ".tar.gz"
                 tar_full_path = "/tmp/" + tar_name
@@ -87,8 +90,11 @@ class Backup():
                 tar_id = self.db.new_archive(self.client_config.cloud, self.client_config.region,
                                              self.client_config.bucket, tar_name)
 
-            # Add file to tar
+            # if (files_to_backup_count > 100 and idx % 10 == 1) or files_to_backup_count <= 100:
+            #     print(f"{file['relative_path']} {file['new_size']} -> {tar_name}",
+            #           end="\r", flush=True)
             print(f"{file['relative_path']} {file['new_size']} -> {tar_name}")
+
             try:
                 tar.add(os.path.join(
                     self.client_config.backup_root, file["relative_path"]))
@@ -116,6 +122,10 @@ class Backup():
         if tar is not None:
             self.flush_tarball_to_s3(tar, tar_full_path, tar_id, tar_size,
                                      tar_name)
+
+        # Flush output
+        # print()
+        # print("Backup complete")
 
     def flush_tarball_to_s3(self, tar: tarfile, tar_full_path: str, tar_id: int, tar_size: int, tar_name: str):
         tar.close()
