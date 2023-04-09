@@ -15,13 +15,13 @@ Since `deep-freeze` cannot read files in Deep Archive quickly and cheaply, backu
 ```shell
 mkdir ${HOME}/.deep-freeze-backups
 <<Create a password/key file, e.g. ${HOME}/.deep-freeze-backups/symmetric_key>>
-create-config.py --cloud-provider=aws \
-                 --region=<region name> \
-                 --aws-profile=<AWS CLI user profile> \
-                 --bucket=<target bucket name> \
-                 --client-name=<host name> \
-                 --backup-root=<path to back up> \
-                 --key-file=${HOME}/.deep-freeze-backups/symmetric_key
+./create-config.py --cloud-provider=aws \
+                   --region=<region name> \
+                   --aws-profile=<AWS CLI user profile> \
+                   --bucket=<target bucket name> \
+                   --client-name=<host name> \
+                   --backup-root=<path to back up> \
+                   --key-file=${HOME}/.deep-freeze-backups/symmetric_key
 ```
 
 Ensure the key file is backed up somewhere safe, e.g. a password manager.
@@ -31,7 +31,29 @@ Ensure the key file is backed up somewhere safe, e.g. a password manager.
 ## Run
 
 ```shell
-deep-freeze.py
+./deep-freeze.py
 ```
 
 Processes all configured backups in turn.
+
+## Scheduled runs
+
+To set up a launchd job that will attempt to run backups hourly if:
+
+* on AC power,
+* Internet access is available,
+* and the last successful backup is at least 24h old
+
+Edit `install/[CHOOSE_A_REVERSE_FQDN_PREFIX].deep-freeze.plist`, fill out placeholders and save in ~/.deep-freeze-backups, then:
+
+```shell
+cd ~/Library/LaunchAgents
+ln -s ~/.deep-freeze-backups/[CHOOSE_A_REVERSE_FQDN_PREFIX].deep-freeze.plist
+launchctl load ~/Library/LaunchAgents/[CHOOSE_A_REVERSE_FQDN_PREFIX].deep-freeze.plist
+```
+
+To start the job manually:
+
+```shell
+launchctl start [CHOOSE_A_REVERSE_FQDN_PREFIX].deep-freeze
+```
