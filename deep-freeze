@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# https://stackoverflow.com/a/246128
+this_script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+[[ -d "${HOME}/.deep-freeze-backups" ]] || mkdir "${HOME}/.deep-freeze-backups"
+
+timestamp_last_run="${HOME}/.deep-freeze-backups/last_run"
+touch "${timestamp_last_run}"
+
+# TODO: Handle Linux
+if [ "$(uname -o)" != "Darwin" ] ; then
+    exit 4
+fi
+
+# Check we are on AC power
+if ! pmset -g ps | grep -q "AC Power" ; then
+    exit 1
+fi
+
+# Check we have Internet access
+if ! ping -n -c 1 -q 1.1.1.1 >/dev/null 2>/dev/null ; then
+    exit 2
+fi
+
+# Check last run was over 24h ago
+timestamp_success="${HOME}/.deep-freeze-backups/last_successful_backup"
+if [ -e "${timestamp_success}" ] ; then
+    timestamp=$(date -r "${timestamp_success}" +%s)
+    now=$(date +%s)
+    if [ $((now - timestamp)) -lt 86400 ] ; then
+        exit 3
+    fi
+fi
+
+"${this_script_dir}/deep-freeze.py"
+touch "${timestamp_success}"
