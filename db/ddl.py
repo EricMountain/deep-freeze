@@ -9,7 +9,7 @@ import db.schema_upgrades
 @dataclass()
 class MaintainSchema():
     connection: sqlite3.Connection
-    target_schema_version: int = 1
+    target_schema_version: int = 2
 
     def __post_init__(self):
         self.get_schema_version()
@@ -20,7 +20,8 @@ class MaintainSchema():
         if self.schema_version == self.target_schema_version:
             return
 
-        print(f"Processing schema upgrades from v{self.schema_version} to v{self.target_schema_version}")
+        print(
+            f"Processing schema upgrades from v{self.schema_version} to v{self.target_schema_version}")
         for v in range(self.schema_version+1, self.target_schema_version+1):
             print(f"Upgrading schema to v{v}")
             class_ = getattr(db.schema_upgrades, f"SchemaUpgradeV{v}")
