@@ -19,23 +19,23 @@ if __name__ == '__main__':
     parser.add_argument("--aws-profile",
                         help="AWS profile to use for upload",
                         type=str,
-                        required=true)
+                        required=True)
     parser.add_argument("--bucket",
                         help="Cloud-provider S3/blob bucket where archives are stored",
                         type=str,
-                        required=true)
+                        required=True)
     parser.add_argument("--client-name",
                         help="Name of the client",
                         type=str,
-                        required=true)
+                        required=True)
     parser.add_argument("--backup-root",
                         help="Directory to backup, a local directory path",
                         type=str,
-                        required=true)
+                        required=True)
     parser.add_argument("--key-file",
                         help="Path to the symmetric key to use for encrypting archives",
                         type=str,
-                        required=true)
+                        required=True)
     parser.add_argument("--cross-devices",
                         help="Whether backups of this directory will cross mount points",
                         action=argparse.BooleanOptionalAction,
