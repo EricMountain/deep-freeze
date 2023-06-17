@@ -19,7 +19,9 @@ class ClientConfig():
     db: Database
 
     BACKUPS_CROSS_DEVICES = "backups_cross_devices"
+    MANUAL_ONLY = "manual_only"
     YES = "Y"
+    NO = "N"
 
     def add_to_database(self):
         self.add_backup_client_config()
