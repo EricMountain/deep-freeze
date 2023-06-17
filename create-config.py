@@ -40,11 +40,16 @@ if __name__ == '__main__':
                         help="Whether backups of this directory will cross mount points",
                         action=argparse.BooleanOptionalAction,
                         default=True)
+    parser.add_argument("--manual-only",
+                        help="Whether backups of this directory should only be done manually",
+                        action=argparse.BooleanOptionalAction,
+                        default=False)
 
     args = parser.parse_args()
 
     options = {}
-    options["backups_cross_devices"] = "Y" if args.cross_devices else "N"
+    options[ClientConfig.BACKUPS_CROSS_DEVICES] = ClientConfig.YES if args.cross_devices else ClientConfig.NO
+    options[ClientConfig.MANUAL_ONLY] = ClientConfig.YES if args.manual_only else ClientConfig.NO
 
     db = Database()
     config = ClientConfig(args.cloud_provider, args.region, args.aws_profile, args.bucket, args.client_name,

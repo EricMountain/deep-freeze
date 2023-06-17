@@ -20,7 +20,7 @@ class Backup():
         self.backup_frozen_time = time.time()
         self.backup_frozen_time_struct = time.gmtime(self.backup_frozen_time)
 
-        # TODO use mktemp + destroy on exit
+        # TODO destroy on exit
         self.tmp_directory = time.strftime('/tmp',
                                       self.backup_frozen_time_struct)
         if not os.path.exists(self.tmp_directory):

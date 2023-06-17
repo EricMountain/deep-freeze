@@ -1,4 +1,5 @@
 - Test files deleted or not accessible mid-run
 - Test recovery: interruption during tar
 - Test recovery: interruption during upload
-- Tests: check backup results
+- Ability to specify exclusions
+- Ability to restore files (single, multiple, whole backup)
