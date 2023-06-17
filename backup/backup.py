@@ -21,10 +21,10 @@ class Backup():
         self.backup_frozen_time_struct = time.gmtime(self.backup_frozen_time)
 
         # TODO use mktemp + destroy on exit
-        tmp_directory = time.strftime('/tmp/%Y/%m/%d',
+        self.tmp_directory = time.strftime('/tmp',
                                       self.backup_frozen_time_struct)
-        if not os.path.exists(tmp_directory):
-            os.makedirs(tmp_directory)
+        if not os.path.exists(self.tmp_directory):
+            os.makedirs(self.tmp_directory)
 
         self.archive_sequence_nb = 0
 
@@ -83,7 +83,14 @@ class Backup():
         for idx, file in enumerate(files_to_backup):
             if tar_name is None:
                 tar_name = self.new_archive_name() + ".tar.gz"
-                tar_full_path = "/tmp/" + tar_name
+                tar_full_path = os.path.join(self.tmp_directory, tar_name)
+                tar_base = os.path.dirname(tar_full_path)
+                print(f"tmpdir: {self.tmp_directory}, tar base: {tar_base}")
+                if not os.path.exists(tar_base):
+                    print(f"tar base: {tar_base} creating")
+                    os.makedirs(tar_base)
+                else:
+                    print(f"tar base: {tar_base} exists")
                 tar = tarfile.open(name=tar_full_path, mode='x:gz')
 
                 print(f"New archive: {tar_name}")
