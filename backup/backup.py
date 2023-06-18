@@ -2,6 +2,7 @@ import os
 import subprocess
 import time
 import tarfile
+import tempfile
 
 from dataclasses import dataclass
 
@@ -21,8 +22,10 @@ class Backup():
         self.backup_frozen_time_struct = time.gmtime(self.backup_frozen_time)
 
         # TODO destroy on exit
-        self.tmp_directory = time.strftime('/tmp',
-                                      self.backup_frozen_time_struct)
+        tmpdir = None
+        if ClientConfig.TMP_DIR in self.client_config.options and self.client_config.options[ClientConfig.TMP_DIR]:
+            tmpdir = self.client_config.options[ClientConfig.TMP_DIR]
+        self.tmp_directory = tempfile.mkdtemp(prefix="deep-freeze-", dir=tmpdir)
         if not os.path.exists(self.tmp_directory):
             os.makedirs(self.tmp_directory)
 

@@ -20,6 +20,7 @@ class ClientConfig():
 
     BACKUPS_CROSS_DEVICES = "backups_cross_devices"
     MANUAL_ONLY = "manual_only"
+    TMP_DIR = "temporary_directory"
     YES = "Y"
     NO = "N"
 

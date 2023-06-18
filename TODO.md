@@ -3,3 +3,5 @@
 - Test recovery: interruption during upload
 - Ability to specify exclusions
 - Ability to restore files (single, multiple, whole backup)
+- Support configured temp dir
+- Support exclusions

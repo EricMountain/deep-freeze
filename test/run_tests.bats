@@ -2,6 +2,7 @@
 
 setup_file() {
   export test_root2=$(mktemp -d)
+  export temp_work_dir=$(mktemp -d)
   ./initial_setup.sh
 }
 
@@ -112,9 +113,14 @@ setup() {
   assert_output "1"
 }
 
+@test "Check manual backup used configured temp directory" {
+  run bash -c "find ${temp_work_dir} | wc -l"
+  assert_output "5"
+}
+
 # @test "Force error to get DB contents" {
 #   sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
 #       "select * from files; select * from file_archive_records; select * from s3_archives; select * from backup_client_configs; select * from backup_client_configs_options"
+#   find ${temp_work_dir}
 #   exit 1
 # }
-
