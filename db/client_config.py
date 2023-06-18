@@ -78,6 +78,9 @@ class ClientConfigFactory():
                 for row2 in cursor2:
                     options[row2["key"]] = row2["value"]
 
+                if ClientConfig.MANUAL_ONLY not in options:
+                    options[ClientConfig.MANUAL_ONLY] = ClientConfig.NO
+
                 cc = ClientConfig(row["cloud"], row["region"], row["credentials"], row["bucket"],
                                   row["client_fqdn"], row["backup_root"], row["key_file_path"],
                                   options, self.db)
