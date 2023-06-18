@@ -44,12 +44,17 @@ if __name__ == '__main__':
                         help="Whether backups of this directory should only be done manually",
                         action=argparse.BooleanOptionalAction,
                         default=False)
+    parser.add_argument("--temp-directory",
+                        help="Directory to use for building archives",
+                        type=str,
+                        default=None)
 
     args = parser.parse_args()
 
     options = {}
     options[ClientConfig.BACKUPS_CROSS_DEVICES] = ClientConfig.YES if args.cross_devices else ClientConfig.NO
     options[ClientConfig.MANUAL_ONLY] = ClientConfig.YES if args.manual_only else ClientConfig.NO
+    if args.temp_directory: options[ClientConfig.TMP_DIR] = args.temp_directory 
 
     db = Database()
     config = ClientConfig(args.cloud_provider, args.region, args.aws_profile, args.bucket, args.client_name,

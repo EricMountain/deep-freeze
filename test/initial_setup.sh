@@ -24,9 +24,13 @@ if [[ -z ${test_root} || ! -d ${test_root} ]]; then
     exit 1
 fi
 
-# test_root2=$(mktemp -d)
 if [[ -z ${test_root2} || ! -d ${test_root2} ]]; then
     echo Need test_root2 set and directory created
+    exit 1
+fi
+
+if [[ -z ${temp_work_dir} || ! -d ${temp_work_dir} ]]; then
+    echo -- Need temp_work_dir set to test --temp-directory
     exit 1
 fi
 
@@ -40,7 +44,7 @@ fi
 
 ../create-config.py --cloud-provider=aws --region=eu-north-1 --aws-profile=toto --bucket=bucket \
     --client-name="test-host" --backup-root="${test_root2}" \
-    --key-file=/deep-freeze/test/key --manual-only
+    --key-file=/deep-freeze/test/key --manual-only --temp-directory="${temp_work_dir}"
 
 sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
     "select * from deep_freeze_metadata;"
@@ -53,45 +57,9 @@ mkdir -p "${test_root}/a1/b1/c2"
 mkdir -p "${test_root}/d1/e1/f1"
 mkdir -p "${test_root}/d1/e2/f2"
 
-# mkdir -p "${test_root}/other_dev"
-# mount -o bind /mnt/other_dev_vol "${test_root}/other_dev"
-
 dd if=/dev/urandom of="${test_root}/a1/b1/c1/c1_1.dat" bs=1k count=2
 dd if=/dev/urandom of="${test_root}/a1/b1/c1/c1_2.dat" bs=1k count=2
 dd if=/dev/urandom of="${test_root}/d1/e1/f1/f1_1.dat" bs=1k count=2
 dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=2
 
 dd if=/dev/urandom of="${test_root2}/some_file" bs=1k count=1
-
-# cd "${test_root}"
-# for i in $(seq 4) ; do
-#  mkdir $i
-#  cd $i
-#  for j in $(seq 4) ; do
-#    mkdir $j
-#    cd $j
-#    for k in $(seq 10) ; do
-#      touch $k
-#    done
-#    cd ..
-#  done
-#  cd ..
-# done
-# cd /deep-freeze/test
-
-# time ../deep-freeze.py
-
-# FIXME Ensure archive name changes thanks to timestamp
-# sleep 1
-
-# # Ensure the size is different so we detect a change
-# dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=3
-
-# time ../deep-freeze.py
-
-# rm "${test_root}/a1/b1/c1/c1_1.dat"
-
-# time ../deep-freeze.py
-
-# sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
-#     "select * from files; select * from file_archive_records; select * from s3_archives;"
