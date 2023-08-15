@@ -7,7 +7,10 @@ set -euo pipefail
 # https://stackoverflow.com/a/246128
 this_script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
-[[ -d "${HOME}/.deep-freeze-backups" ]] || mkdir "${HOME}/.deep-freeze-backups"
+dfb_dir="${HOME}/.deep-freeze-backups"
+dfb_rc="${dfb_dir}/deep-freeze.rc"
+[[ -d "${dfb_dir}" ]] || mkdir "${dfb_dir}"
+[[ -e "${dfb_rc}" ]] && source "${dfb_rc}"
 
 timestamp_last_run="${HOME}/.deep-freeze-backups/last_run"
 touch "${timestamp_last_run}"
@@ -18,7 +21,19 @@ if ! ping -n -c 1 -q 1.1.1.1 >/dev/null 2>/dev/null; then
     exit 69 # service unavailable
 fi
 
-# Check last run was over 24h ago
+# Check if we're on a known "metered" connection (e.g. WiFi tethering)
+if [[ $(uname -o) == "Darwin" && -v disallowed_ssids[@] ]] ; then
+    # Credit https://stackoverflow.com/a/4481019
+    ssid=$(/System/Library/PrivateFrameworks/Apple80211.framework/Resources/airport -I | awk -F' SSID: '  '/ SSID: / {print $2}')
+    for i in "${disallowed_ssids[@]}" ; do
+        if [[ ${i} == ${ssid} ]] ; then
+            echo Metered/low-data network \"${ssid}\", exiting 1>&2
+            exit 69 # service unavailable
+        fi
+    done
+fi
+
+# Check last successful run was over 24h ago
 timestamp_success="${HOME}/.deep-freeze-backups/last_successful_backup"
 if [ -e "${timestamp_success}" ]; then
     timestamp=$(date -r "${timestamp_success}" +%s)
