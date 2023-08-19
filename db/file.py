@@ -31,6 +31,11 @@ class File():
             print(f"Inaccessible, pretend deleted: {self.rel_path}")
             return
 
+        e = self._check_utf8(self.rel_path)
+        if e is not None:
+            print(f"Pretending deleted, unable to encode file name: {e}")
+            return
+
         datetime_str = self._epoch2fmt(self.metadata.st_mtime)
 
         cursor = self.db.connection.cursor()
@@ -50,6 +55,13 @@ class File():
                                 datetime_str,
                                 self.metadata.st_size, datetime_str,
                                 self.metadata.st_size, datetime_str))
+
+    def _check_utf8(self, s):
+        try:
+            s.encode("utf-8")
+        except Exception as e:
+            return e
+        return None
 
     def _epoch2fmt(self, epoch) -> str:
         return time.strftime('%Y-%m-%d %H:%M:%S %Z', time.gmtime(epoch))
