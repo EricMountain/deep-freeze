@@ -118,6 +118,13 @@ setup() {
   assert_output "5"
 }
 
+@test "Increase age of first two archives" {
+  run sqlite3 -echo ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "update s3_archives set created = '$(date -d "7 months ago" "+%Y-%m-%d %H:%M:%S")' where archive_id in (1, 2)"
+  assert_success
+}
+
+
 # @test "Force error to get DB contents" {
 #   sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
 #       "select * from files; select * from file_archive_records; select * from s3_archives; select * from backup_client_configs; select * from backup_client_configs_options"

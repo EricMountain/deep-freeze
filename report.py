@@ -30,56 +30,35 @@ class Report():
 
         np.set_printoptions(precision=2)
         values = []
+        rows = self.db.get_archives_to_delete(self.client_config.cloud, self.client_config.region,
+                                                self.client_config.bucket, self.client_config.backup_root)
+        not_relevant_count = 0
+        for row in rows:
+            arch_name = row['archive_file_name']
+            id = row['archive_id']
+            relevant = row['relevant_size']
+            total = row['total_size']
+            status = row['status']
+            created = row['created']
 
-        with self.db.connection:
-            cursor = self.db.connection.cursor()
-            query = '''
-                  select s3.archive_file_name, s3.total_size, s3.relevant_size, s3.status, s3.archive_id, s3.created
-                  from s3_archives as s3
-                  inner join backup_client_configs as cc using (cloud, region, bucket)
-                  where cc.cloud = ?
-                  and cc.region = ?
-                  and cc.bucket = ?
-                  and cc.backup_root = ?
-                  and s3.status = 'uploaded'
-                  and julianday('now') - julianday(s3.created) > 180
-                  and s3.archive_id in (select distinct far.archive_id
-                              from file_archive_records as far
-                              inner join files as f using (file_id)
-                              where far.archive_id = s3.archive_id
-                              and f.client_fqdn = cc.client_fqdn
-                              and f.backup_root = cc.backup_root)
-                  '''
-            cursor.execute(query, (self.client_config.cloud, self.client_config.region,
-                                   self.client_config.bucket, self.client_config.backup_root))
+            parser_dt = datetime.now(timezone.utc)
+            created_dt = parser_dt.strptime(created, "%Y-%m-%d %H:%M:%S")
 
-            not_relevant_count = 0
-            for row in cursor:
-                arch_name = row['archive_file_name']
-                id = row['archive_id']
-                relevant = row['relevant_size']
-                total = row['total_size']
-                status = row['status']
-                created = row['created']
-
-                parser_dt = datetime.now(timezone.utc)
-                created_dt = parser_dt.strptime(created, "%Y-%m-%d %H:%M:%S")
-
-                now_dt = datetime.utcnow()
-                age_dt = now_dt - created_dt
-                if relevant == 0:
-                    print(
-                        f"{arch_name} ({id}) No longer relevant, age: {age_dt}")
-                    values.append(0)
-                    not_relevant_count += 1
-                elif relevant != total:
-                    pct = relevant * 100 / total
-                    print(
-                        f"{arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
-                    values.append(pct)
-                else:
-                    print(f"{arch_name} ({id}) 100% relevant ({relevant}/{total}), age: {age_dt}")
-                    values.append(100.0)
+            now_dt = datetime.utcnow()
+            age_dt = now_dt - created_dt
+            if relevant == 0:
+                print(
+                    f"{arch_name} ({id}) No longer relevant, age: {age_dt}")
+                values.append(0)
+                not_relevant_count += 1
+            elif relevant != total:
+                pct = relevant * 100 / total
+                print(
+                    f"{arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
+                values.append(pct)
+            else:
+                print(f"{arch_name} ({id}) 100% relevant ({relevant}/{total}), age: {age_dt}")
+                values.append(100.0)
 
         print(f"Total non-relevant files: {not_relevant_count}")
         hist, bin_edges = np.histogram(values)
