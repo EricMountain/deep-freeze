@@ -42,10 +42,18 @@ class Report():
                   and cc.bucket = ?
                   and cc.backup_root = ?
                   and s3.status = 'uploaded'
+                  and julianday('now') - julianday(s3.created) > 180
+                  and s3.archive_id in (select distinct far.archive_id
+                              from file_archive_records as far
+                              inner join files as f using (file_id)
+                              where far.archive_id = s3.archive_id
+                              and f.client_fqdn = cc.client_fqdn
+                              and f.backup_root = cc.backup_root)
                   '''
             cursor.execute(query, (self.client_config.cloud, self.client_config.region,
                                    self.client_config.bucket, self.client_config.backup_root))
 
+            not_relevant_count = 0
             for row in cursor:
                 arch_name = row['archive_file_name']
                 id = row['archive_id']
@@ -61,22 +69,25 @@ class Report():
                 age_dt = now_dt - created_dt
                 if relevant == 0:
                     print(
-                        f"No longer relevant: {arch_name} {age_dt}")
+                        f"{arch_name} ({id}) No longer relevant, age: {age_dt}")
                     values.append(0)
+                    not_relevant_count += 1
                 elif relevant != total:
                     pct = relevant * 100 / total
                     print(
-                        f"{arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total})")
+                        f"{arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
                     values.append(pct)
-                # else:
-                #     values.append(100.0)
+                else:
+                    print(f"{arch_name} ({id}) 100% relevant ({relevant}/{total}), age: {age_dt}")
+                    values.append(100.0)
 
+        print(f"Total non-relevant files: {not_relevant_count}")
         hist, bin_edges = np.histogram(values)
         print(f"{hist}")
         print(f"{bin_edges}")
 
         plt.hist(values, bins=10)
-        plt.show()
+        # plt.show()
 
 
 class ReportAll():
@@ -89,7 +100,6 @@ class ReportAll():
         for cc in client_configs:
             print(f"{cc}")
             Report(self.db, cc).run()
-            break
 
 
 ReportAll().run()
