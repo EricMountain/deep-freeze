@@ -39,6 +39,9 @@ class Backup():
         self.key_file_path = self.client_config.key_file_path
 
     def run(self):
+        self.run_backup()
+
+    def run_backup(self):
         self.prepare_backup()
         self.db.set_sweep_mark(
             self.client_config.client_fqdn, self.client_config.backup_root)
