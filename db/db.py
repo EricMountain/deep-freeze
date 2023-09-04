@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import time
+from datetime import datetime, timezone
 
 from dataclasses import dataclass
 
@@ -307,8 +308,7 @@ class Database():
             cursor.execute(query, (archive_id,))
 
     def flag_archives_to_delete(self, cloud: str, region: str, bucket: str, backup_root: str):
-        rows = self.db.get_archives_to_delete(self.client_config.cloud, self.client_config.region,
-                                                self.client_config.bucket, self.client_config.backup_root)
+        rows = self.get_archives_to_delete(cloud, region, bucket, backup_root)
         for row in rows:
             arch_name = row['archive_file_name']
             id = row['archive_id']

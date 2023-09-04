@@ -124,6 +124,16 @@ setup() {
   assert_success
 }
 
+@test "Run backup 4" {
+  run ../deep-freeze.py
+  assert_success
+}
+
+@test "Check old irrelevant archives marked for pruning" {
+  run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "select count(*) from s3_archives where status = 'pending_deletion'"
+  assert_output "1"
+}
 
 # @test "Force error to get DB contents" {
 #   sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
