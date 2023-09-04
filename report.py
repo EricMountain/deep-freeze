@@ -16,18 +16,7 @@ class Report():
     db: Database
     client_config: ClientConfig
 
-    def fix_stats(self):
-        with self.db.connection:
-            cursor = self.db.connection.cursor()
-            query = '''
-                  update s3_archives as s3
-                  set relevant_size = (select ifnull(sum(file_size), 0) from file_archive_records as far where far.archive_id = s3.archive_id and far.status = 'uploaded')
-                  '''
-            cursor.execute(query)
-
     def run(self):
-        self.fix_stats()
-
         np.set_printoptions(precision=2)
         values = []
         rows = self.db.get_archives_to_delete(self.client_config.cloud, self.client_config.region,

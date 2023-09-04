@@ -23,6 +23,19 @@ class Database():
 
         MaintainSchema(self.connection)
 
+        self._fix_stats()
+
+    # TODO: see if/when we can remove this (is the bug still present, has this run on all clients?)
+    # Could be moved to a schema upgrade step
+    def _fix_stats(self):
+        with self.connection:
+            cursor = self.connection.cursor()
+            query = '''
+                  update s3_archives as s3
+                  set relevant_size = (select ifnull(sum(file_size), 0) from file_archive_records as far where far.archive_id = s3.archive_id and far.status = 'uploaded')
+                  '''
+            cursor.execute(query)
+
     def set_sweep_mark(self, client_fqdn, backup_root):
         with self.connection:
             cursor = self.connection.cursor()
