@@ -19,7 +19,7 @@ class Report():
     def run(self):
         np.set_printoptions(precision=2)
         values = []
-        rows = self.db.get_archives_to_delete(self.client_config.cloud, self.client_config.region,
+        rows = self.db.decide_archives_to_delete(self.client_config.cloud, self.client_config.region,
                                                 self.client_config.bucket, self.client_config.backup_root)
         not_relevant_count = 0
         for row in rows:

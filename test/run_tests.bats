@@ -129,9 +129,9 @@ setup() {
   assert_success
 }
 
-@test "Check old irrelevant archives marked for pruning" {
+@test "Check old irrelevant archives pruned" {
   run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
-    "select count(*) from s3_archives where status = 'pending_deletion'"
+    "select count(*) from s3_archives where status = 'deleted'"
   assert_output "1"
 }
 

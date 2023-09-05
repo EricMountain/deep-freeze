@@ -41,10 +41,16 @@ class Backup():
     def run(self):
         self.prepare_old_archives_for_pruning()
         self.run_backup()
+        self.purge_old_archives()
 
     def prepare_old_archives_for_pruning(self):
         self.db.flag_archives_to_delete(self.client_config.cloud, self.client_config.region,
                                         self.client_config.bucket, self.client_config.backup_root)
+
+    def purge_old_archives(self):
+        self.db.purge_archives_pending_deletion(self.client_config.cloud, self.client_config.region,
+                                                self.client_config.credentials,
+                                                self.client_config.bucket, self.client_config.backup_root)
 
     def run_backup(self):
         self.prepare_backup()
