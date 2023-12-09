@@ -57,3 +57,17 @@ To start the job manually:
 ```shell
 launchctl start [CHOOSE_A_REVERSE_FQDN_PREFIX].deep-freeze
 ```
+
+## Restoring files from backup
+
+Identify archives for a file to restore and generate the commands to restore the relevant S3 objects from Glacier (`restore-object`), monitor progress (`head-object`) of the restore and copy the file (`cp`):
+
+```shell
+deep-freeze-restore.py --client-name $(hostname) --backup-root $(pwd) --target "relative_path_to_file_to_restore"
+```
+
+* Trigger the restore from Glacier.
+* Check for completion, it will take a few hours.
+* Copy the restored object locally.
+* Decrypt the archive: `gpg -d x.tar.gz.enc > x.tar.gz`.
+* Untar the archive, extracting the desired file: `tar xzf x.tar.gz --strip-components=<Y> -C <destination> "relative_path_to_file"`

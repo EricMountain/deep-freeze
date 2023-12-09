@@ -124,6 +124,11 @@ setup() {
   assert_success
 }
 
+@test "Prepare file restore" {
+  cd "${test_root}"
+  run /deep-freeze/deep-freeze-restore.py --client-name="test-host" --backup-root="${test_root}" --target=d1/e2/f2/f2_1.dat
+  assert_success
+}
 
 # @test "Force error to get DB contents" {
 #   sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
