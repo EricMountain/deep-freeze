@@ -312,3 +312,62 @@ class Database():
             pct = relevant * 100 / total
             print(f"Pending deletion: {arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
             self.flag_archive_to_delete(id)
+
+    def find_file(self, backup_root: str, file: str):
+        with self.connection:
+            cursor = self.connection.cursor()
+            query = '''
+                        select file_id
+                        from files
+                        where backup_root = ?
+                        and relative_path like ?
+                    '''
+            cursor.execute(query, (backup_root, file))
+
+            entries = []
+            for row in cursor:
+                entry = {}
+                for col in row.keys():
+                    entry[col] = row[col]
+                entries.append(entry)
+
+            return entries
+
+    def find_file_archives(self, file_id: str):
+        with self.connection:
+            cursor = self.connection.cursor()
+            query = '''
+                        select file_id, archive_id, file_size, file_modification, status
+                        from file_archive_records
+                        where file_id = ?
+                        and status in ('uploaded', 'superseded')
+                    '''
+            cursor.execute(query, (file_id,))
+
+            entries = []
+            for row in cursor:
+                entry = {}
+                for col in row.keys():
+                    entry[col] = row[col]
+                entries.append(entry)
+
+            return entries
+
+    def get_archive_details(self, archive_id: str):
+        with self.connection:
+            cursor = self.connection.cursor()
+            query = '''
+                        select archive_id, bucket, archive_file_name
+                        from s3_archives
+                        where archive_id = ?
+                    '''
+            cursor.execute(query, (archive_id,))
+
+            entries = []
+            for row in cursor:
+                entry = {}
+                for col in row.keys():
+                    entry[col] = row[col]
+                entries.append(entry)
+
+            return entries
