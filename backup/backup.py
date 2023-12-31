@@ -148,7 +148,7 @@ class Backup():
         cmd = f"aws --profile {self.client_config.credentials}"
         cmd += f" s3 cp --storage-class {self.s3_storage_class}"
         cmd += f" {enc_full_path} s3://{self.client_config.bucket}/{enc_name}"
-        subprocess.run(cmd.split())
+        subprocess.run(cmd.split()).check_returncode()
         self.db.archive_uploaded(tar_id, tar_size)
         os.remove(tar_full_path)
         os.remove(enc_full_path)
