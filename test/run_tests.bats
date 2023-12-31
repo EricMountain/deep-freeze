@@ -1,4 +1,5 @@
 #!/usr/bin/env -S bats -x --pretty --verbose-run
+# For debugging: --show-output-of-passing-tests
 
 setup_file() {
   export test_root2=$(mktemp -d)
@@ -10,6 +11,8 @@ setup() {
   bats_load_library 'bats-support'
   bats_load_library 'bats-assert'
 }
+
+# Test automatic backups
 
 @test "Run backup 1" {
   run ../deep-freeze.py
@@ -34,7 +37,7 @@ setup() {
   assert_output "4"
 }
 
-@test "Check test_root2 has not been loaded" {
+@test "Check test_root2 has not been loaded as it is manually backed up" {
   run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
     "select count(*) from files where backup_root = '${test_root2}'"
   assert_output "0"
@@ -44,6 +47,8 @@ setup() {
   run sleep 1
   assert_success
 }
+
+# Verify backups are incremental
 
 @test "Make a change in test_root" {
   # Ensure the size is different so we detect a change
@@ -85,6 +90,8 @@ setup() {
   assert_output "1"
 }
 
+# Test manual backups
+
 @test "Make a change in test_root that will not be backed up" {
   # Ensure the size is different so we detect a change
   dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=4
@@ -118,11 +125,7 @@ setup() {
   assert_output "5"
 }
 
-@test "Increase age of first two archives" {
-  run sqlite3 -echo ~/.deep-freeze-backups/deep-freeze-backups.db \
-    "update s3_archives set created = '$(date -d "7 months ago" "+%Y-%m-%d %H:%M:%S")' where archive_id in (1, 2)"
-  assert_success
-}
+# Test file restore command generator
 
 @test "Prepare file restore" {
   cd "${test_root}"
@@ -130,9 +133,42 @@ setup() {
   assert_success
 }
 
+# Test purge of superseded archives
+
+@test "Ensure all test_root files are updated relative to first backup" {
+  for f in $(find ${test_root} -type f) ; do
+    dd if=/dev/urandom of="${f}" bs=1k count=3
+  done
+}
+
+@test "Run backup 4" {
+  run ../deep-freeze.py
+  assert_success
+}
+
+@test "Increase age of first two archives" {
+  run sqlite3 -echo ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "update s3_archives set created = '$(date -d "7 months ago" "+%Y-%m-%d %H:%M:%S")' where archive_id in (1, 2)"
+  assert_success
+}
+
+@test "Run backup 5" {
+  run ../deep-freeze.py
+  assert_success
+}
+
+@test "Check old superseded archives have been deleted" {
+  run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "select count(*) from s3_archives where status='deleted'"
+  assert_output "2"
+}
+
+# Debugging
+
 # @test "Force error to get DB contents" {
 #   sqlite3 -echo -header -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
 #       "select * from files; select * from file_archive_records; select * from s3_archives; select * from backup_client_configs; select * from backup_client_configs_options"
 #   find ${temp_work_dir}
 #   exit 1
 # }
+

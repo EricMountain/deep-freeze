@@ -30,9 +30,10 @@ class Report():
 
         np.set_printoptions(precision=2)
         values = []
-        rows = self.db.get_archives_to_delete(self.client_config.cloud, self.client_config.region,
+        rows = self.db.get_archive_stats(self.client_config.cloud, self.client_config.region,
                                                 self.client_config.bucket, self.client_config.backup_root)
         not_relevant_count = 0
+        not_relevant_bytes = 0
         for row in rows:
             arch_name = row['archive_file_name']
             id = row['archive_id']
@@ -51,16 +52,17 @@ class Report():
                     f"{arch_name} ({id}) No longer relevant, age: {age_dt}")
                 values.append(0)
                 not_relevant_count += 1
+                not_relevant_bytes += total
             elif relevant != total:
                 pct = relevant * 100 / total
                 print(
                     f"{arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
                 values.append(pct)
             else:
-                print(f"{arch_name} ({id}) 100% relevant ({relevant}/{total}), age: {age_dt}")
+                # print(f"{arch_name} ({id}) 100% relevant ({relevant}/{total}), age: {age_dt}")
                 values.append(100.0)
 
-        print(f"Total non-relevant files: {not_relevant_count}")
+        print(f"Total non-relevant files: {not_relevant_count}, {not_relevant_bytes} bytes")
         hist, bin_edges = np.histogram(values)
         print(f"{hist}")
         print(f"{bin_edges}")

@@ -1,5 +1,7 @@
-from .backup import Backup
 from db import Database, ClientConfigFactory, ClientConfig
+
+from .backup import Backup
+from .purge import Purge
 
 
 class Coordinator():
@@ -14,6 +16,8 @@ class Coordinator():
                 continue
             print(f"Backing up: {cc}")
             Backup(self.db, cc).run()
+            print(f"Purging obsolete archives: {cc}")
+            Purge(self.db, cc).run()
 
     def run_manual(self, cloud_provider, region, client_name, backup_root):
         ccf = ClientConfigFactory(self.db)
@@ -33,3 +37,5 @@ class Coordinator():
                 continue
             print(f"Backing up: {cc}")
             Backup(self.db, cc).run()
+            print(f"Purging obsolete archives: {cc}")
+            Purge(self.db, cc).run()
