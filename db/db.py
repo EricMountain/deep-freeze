@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import time
+from datetime import datetime, timezone
 
 from dataclasses import dataclass
 
@@ -283,19 +284,53 @@ class Database():
 
             return entries
 
-    def flag_archive_to_delete(self, archive_id:int):
+    def get_archive_stats(self, cloud: str, region: str, bucket: str, backup_root: str):
+        with self.connection:
+            cursor = self.connection.cursor()
+            query = '''
+                  select s3.archive_file_name, s3.total_size, s3.relevant_size, s3.status, s3.archive_id, s3.created
+                  from s3_archives as s3
+                  inner join backup_client_configs as cc using (cloud, region, bucket)
+                  where cc.cloud = ?
+                  and cc.region = ?
+                  and cc.bucket = ?
+                  and cc.backup_root = ?
+                  and s3.status = 'uploaded'
+                  and julianday('now') - julianday(s3.created) > 180
+                  -- Ensures archives we're considering belong to the client_config
+                  and s3.archive_id in (select distinct far.archive_id
+                              from file_archive_records as far
+                              inner join files as f using (file_id)
+                              where far.archive_id = s3.archive_id
+                              and f.client_fqdn = cc.client_fqdn
+                              and f.backup_root = cc.backup_root)
+                  '''
+            cursor.execute(query, (cloud, region, bucket, backup_root))
+
+            entries = []
+            for row in cursor:
+                entry = {}
+                for col in row.keys():
+                    entry[col] = row[col]
+                entries.append(entry)
+
+            return entries
+
+    def _set_archive_status(self, archive_id:int, status:str):
         with self.connection:
             cursor = self.connection.cursor()
             query = '''
                   update s3_archives
-                  set status = 'pending_deletion'
+                  set status = ?
                   where archive_id = ?
                   '''
-            cursor.execute(query, (archive_id,))
+            cursor.execute(query, (status, archive_id))
+
+    def flag_archive_pending_deletion(self, archive_id:int):
+        self._set_archive_status(archive_id, 'pending_deletion')
 
     def flag_archives_to_delete(self, cloud: str, region: str, bucket: str, backup_root: str):
-        rows = self.db.get_archives_to_delete(self.client_config.cloud, self.client_config.region,
-                                                self.client_config.bucket, self.client_config.backup_root)
+        rows = self.get_archives_to_delete(cloud, region, bucket, backup_root)
         for row in rows:
             arch_name = row['archive_file_name']
             id = row['archive_id']
@@ -309,9 +344,48 @@ class Database():
 
             now_dt = datetime.utcnow()
             age_dt = now_dt - created_dt
-            pct = relevant * 100 / total
+
+            # Corner case: archive may contain only zero-length files, in which case total == 0
+            if total != 0:
+                pct = relevant * 100 / total
+            else:
+                pct = -1.0
             print(f"Pending deletion: {arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
-            self.flag_archive_to_delete(id)
+            self.flag_archive_pending_deletion(id)
+
+    def get_archives_pending_deletion(self, cloud: str, region: str, bucket: str, backup_root: str):
+        with self.connection:
+            cursor = self.connection.cursor()
+            query = '''
+                  select s3.archive_file_name, s3.archive_id
+                  from s3_archives as s3
+                  inner join backup_client_configs as cc using (cloud, region, bucket)
+                  where cc.cloud = ?
+                  and cc.region = ?
+                  and cc.bucket = ?
+                  and cc.backup_root = ?
+                  and s3.status = 'pending_deletion'
+                  -- Ensures archives we're considering belong to the client_config
+                  and s3.archive_id in (select distinct far.archive_id
+                              from file_archive_records as far
+                              inner join files as f using (file_id)
+                              where far.archive_id = s3.archive_id
+                              and f.client_fqdn = cc.client_fqdn
+                              and f.backup_root = cc.backup_root)
+                  '''
+            cursor.execute(query, (cloud, region, bucket, backup_root))
+
+            entries = []
+            for row in cursor:
+                entry = {}
+                for col in row.keys():
+                    entry[col] = row[col]
+                entries.append(entry)
+
+            return entries
+
+    def flag_archive_deleted(self, archive_id:int):
+        self._set_archive_status(archive_id, 'deleted')
 
     def find_file(self, backup_root: str, file: str):
         with self.connection:
