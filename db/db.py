@@ -162,7 +162,8 @@ class Database():
                   insert into s3_archives(cloud, region, bucket, archive_file_name, total_size, relevant_size, status)
                   values(?,?,?,?,?,?,?)
                   '''
-            cursor.execute(query, (cloud, region, bucket, name, 0, 0, "pending_upload"))
+            cursor.execute(query, (cloud, region, bucket,
+                           name, 0, 0, "pending_upload"))
 
         with self.connection:
             cursor = self.connection.cursor()
@@ -245,7 +246,8 @@ class Database():
                   insert into file_archive_records(file_id, archive_id, file_size, file_modification, status)
                   values(?,?,?,?,?)
                   '''
-            cursor.execute(query, (file_id, archive_id, size, modification, "pending_upload"))
+            cursor.execute(query, (file_id, archive_id, size,
+                           modification, "pending_upload"))
 
     def get_archives_to_delete(self, cloud: str, region: str, bucket: str, backup_root: str):
         with self.connection:
@@ -316,7 +318,7 @@ class Database():
 
             return entries
 
-    def _set_archive_status(self, archive_id:int, status:str):
+    def _set_archive_status(self, archive_id: int, status: str):
         with self.connection:
             cursor = self.connection.cursor()
             query = '''
@@ -326,7 +328,7 @@ class Database():
                   '''
             cursor.execute(query, (status, archive_id))
 
-    def flag_archive_pending_deletion(self, archive_id:int):
+    def flag_archive_pending_deletion(self, archive_id: int):
         self._set_archive_status(archive_id, 'pending_deletion')
 
     def flag_archives_to_delete(self, cloud: str, region: str, bucket: str, backup_root: str):
@@ -350,7 +352,8 @@ class Database():
                 pct = relevant * 100 / total
             else:
                 pct = -1.0
-            print(f"Pending deletion: {arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
+            print(
+                f"Pending deletion: {arch_name} ({id}) {pct:.2f}% relevant ({relevant}/{total}), age: {age_dt}")
             self.flag_archive_pending_deletion(id)
 
     def get_archives_pending_deletion(self, cloud: str, region: str, bucket: str, backup_root: str):
@@ -384,7 +387,7 @@ class Database():
 
             return entries
 
-    def flag_archive_deleted(self, archive_id:int):
+    def flag_archive_deleted(self, archive_id: int):
         self._set_archive_status(archive_id, 'deleted')
 
     def find_file(self, backup_root: str, file: str):

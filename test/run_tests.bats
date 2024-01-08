@@ -4,12 +4,15 @@
 setup_file() {
   export test_root2=$(mktemp -d)
   export temp_work_dir=$(mktemp -d)
-  ./initial_setup.sh
 }
 
 setup() {
   bats_load_library 'bats-support'
   bats_load_library 'bats-assert'
+}
+
+@test "Create initial data set" {
+    ./initial_setup.sh
 }
 
 # Test automatic backups
@@ -22,19 +25,25 @@ setup() {
 @test "Check test_root files have been loaded" {
   run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
     "select count(*) from files where backup_root = '${test_root}'"
-  assert_output "4"
+  assert_output "5"
 }
 
 @test "Check deep-freeze files have been loaded too" {
   run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
-    "select count(*) from files"
-  assert_output "5"
+    "select count(*) from files where backup_root = '${HOME}/.deep-freeze-backups'"
+  assert_output "1"
 }
 
 @test "Check test_root has been backed up" {
   run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
     "select count(*) from files f inner join file_archive_records far using (file_id) where f.backup_root = '${test_root}' and far.status='uploaded'"
-  assert_output "4"
+  assert_output "5"
+}
+
+@test "Check deep-freeze DB has been backed up" {
+  run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "select count(*) from files f inner join file_archive_records far using (file_id) where f.backup_root = '${HOME}/.deep-freeze-backups' and far.status='uploaded'"
+  assert_output "1"
 }
 
 @test "Check test_root2 has not been loaded as it is manually backed up" {
@@ -43,16 +52,21 @@ setup() {
   assert_output "0"
 }
 
-@test "Ensure archive name will change for next backup" {
+@test "Ensure archive name will change for next backup (1)" {
   run sleep 1
   assert_success
 }
 
-# Verify backups are incremental
+# Verify backups are incremental and that new exclusions are honoured
 
 @test "Make a change in test_root" {
   # Ensure the size is different so we detect a change
   dd if=/dev/urandom of="${test_root}/d1/e2/f2/f2_1.dat" bs=1k count=3
+}
+
+@test "Add a file exclusion" {
+  sqlite3 -echo -header ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "insert into backup_client_configs_exclusions(client_fqdn, backup_root, pattern) values ('test-host', '${test_root}', '/d1/e2/f2/not_initially_excluded_file3\.dat')"
 }
 
 @test "Run backup 2" {
@@ -70,6 +84,16 @@ setup() {
   assert_output "2"
 }
 
+@test "Check newly excluded file is considered deleted" {
+  run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "select count(*) from files where relative_path = 'd1/e2/f2/not_initially_excluded_file3.dat' and status = 'absent'"
+  assert_output "1"
+
+  run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "select count(*) from file_archive_records where status='deleted'"
+  assert_output "1"
+}
+
 @test "Delete a file" {
   run rm "${test_root}/a1/b1/c1/c1_1.dat"
   assert_success
@@ -85,9 +109,10 @@ setup() {
     "select count(*) from files where relative_path = 'a1/b1/c1/c1_1.dat' and status = 'absent'"
   assert_output "1"
 
+  # File excluded above is deleted too
   run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
     "select count(*) from file_archive_records where status='deleted'"
-  assert_output "1"
+  assert_output "2"
 }
 
 # Test manual backups
@@ -110,8 +135,8 @@ setup() {
 
 @test "Check test_root2 has been backed up" {
   run sqlite3 -echo -readonly ~/.deep-freeze-backups/deep-freeze-backups.db \
-    "select count(*) from file_archive_records where status='uploaded'"
-  assert_output "5"
+    "select count(*) from files f inner join file_archive_records far using (file_id) where far.status='uploaded' and f.backup_root = '${HOME}/.deep-freeze-backups'"
+  assert_output "1"
 }
 
 @test "Check the change in test_root was not backed up" {
@@ -139,6 +164,11 @@ setup() {
   for f in $(find ${test_root} -type f) ; do
     dd if=/dev/urandom of="${f}" bs=1k count=3
   done
+}
+
+@test "Ensure archive name will change for next backup (2)" {
+  run sleep 1
+  assert_success
 }
 
 @test "Run backup 4" {
