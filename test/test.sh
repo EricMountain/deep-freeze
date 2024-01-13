@@ -3,6 +3,10 @@
 set -euo pipefail
 set -x
 
+# https://stackoverflow.com/a/246128
+this_script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+cd ${this_script_dir}
 docker build -t deep-freeze-test:0.1 .. -f Dockerfile
 
 test_root=$(mktemp -d -u)

@@ -71,3 +71,18 @@ deep-freeze-restore.py --client-name $(hostname) --backup-root $(pwd) --target "
 * Copy the restored object locally.
 * Decrypt the archive: `gpg -d x.tar.gz.enc > x.tar.gz`.
 * Untar the archive, extracting the desired file: `tar xzf x.tar.gz --strip-components=<Y> -C <destination> "relative_path_to_file"`
+
+## Exclusions (experimental)
+
+Files/directories can be excluded from backups: exclusions are defined using regexp patterns.
+
+Exclusions are currently added through DML statements issued against the database directly, there is no helper CLI yet. For example:
+
+```shell
+sqlite3 -echo -header ~/.deep-freeze-backups/deep-freeze-backups.db \
+    "insert into backup_client_configs_exclusions(client_fqdn, backup_root, pattern) values ('test-host', '${test_root}', '/a1/excluded_directory2/.*')"
+```
+
+### Evolution
+
+It’s likely exclusions will evolve in a non-backward-compatible way once Python 3.13 is available, bringing support for [recursive wildcards in pathlib.PurePath.match()](https://github.com/python/cpython/issues/73435). This syntax would simplify UX.

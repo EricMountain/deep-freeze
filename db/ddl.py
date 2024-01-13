@@ -9,7 +9,7 @@ import db.schema_upgrades
 @dataclass()
 class MaintainSchema():
     connection: sqlite3.Connection
-    target_schema_version: int = 2
+    target_schema_version: int = 3
 
     def __post_init__(self):
         self.get_schema_version()

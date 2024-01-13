@@ -67,11 +67,13 @@ class Backup():
     def scan(self):
         self.db.connection.execute("BEGIN")
         for root, dirs, files in os.walk(self.client_config.backup_root, followlinks=False):
+            relative_root = root.replace(self.client_config.backup_root, "")
             if not self.cross_devices:
                 dirs[:] = [dir for dir in dirs if not os.path.ismount(
-                    os.path.join(root, dir))]
+                    os.path.join(root, dir)) and not self.client_config.is_excluded(relative_root, dir)]
             for file in files:
-                File(self.db, self.client_config, root, file).upsert()
+                if not self.client_config.is_excluded(relative_root, file):
+                    File(self.db, self.client_config, root, file).upsert()
         self.db.connection.commit()
 
     def backup(self):
